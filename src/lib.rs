@@ -37,8 +37,8 @@ pub fn chunk_parser(_attr: TokenStream, item: TokenStream) -> TokenStream {
             }
         }
 
-        // implement common parser api
-        impl<R> ParserCommon for #name<R> where R: std::io::Read + std::io::Seek {
+        // implement parser reader
+        impl<R> ParserReader for #name<R> where R: std::io::Read + std::io::Seek {
             type Reader = R;
             #[inline] fn reader(&mut self) -> &mut Self::Reader { &mut self.reader }
         }
