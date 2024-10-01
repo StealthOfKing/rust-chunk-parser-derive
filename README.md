@@ -1,5 +1,9 @@
 # chunk-parser-derive
 
+![GitHub Package Version](https://img.shields.io/badge/dynamic/toml?url=https%3A%2F%2Fraw.githubusercontent.com%2FStealthOfKing%2Frust-chunk-parser-derive%2Frefs%2Fheads%2Fmaster%2FCargo.toml&query=%24.package.version&prefix=v&label=Rust)
+![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/StealthOfKing/rust-chunk-parser-derive/rust.yml)
+![GitHub License](https://img.shields.io/github/license/StealthOfKing/rust-chunk-parser-derive)
+
 `chunk-parser-derive` provides the `chunk_parser()` attribute macro for `chunk-parser`.
 
 ## Usage
