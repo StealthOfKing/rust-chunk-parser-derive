@@ -14,18 +14,19 @@ pub fn chunk_parser(_attr: TokenStream, item: TokenStream) -> TokenStream {
 
         // the internal reader forms the backbone of the parser
         pub struct #name<R> where R: std::io::Read + std::io::Seek {
-            reader: R
+            reader: R,
+            depth: usize
         }
 
         // general ctor
         impl<R> #name<R> where R: std::io::Read + std::io::Seek {
-            #[inline] pub fn new(reader: R) -> Self { Self { reader } }
+            #[inline] pub fn new(reader: R) -> Self { Self { reader, depth: 0 } }
         }
 
         // buffer ctor
         impl #name<std::io::Cursor<&[u8]>> {
             #[inline] pub fn buf(buffer: &'static [u8]) -> Self {
-                Self { reader: std::io::Cursor::new(buffer) }
+                Self::new(std::io::Cursor::new(buffer))
             }
         }
 
@@ -33,14 +34,16 @@ pub fn chunk_parser(_attr: TokenStream, item: TokenStream) -> TokenStream {
         impl #name<std::io::BufReader<std::fs::File>> {
             #[inline] pub fn file(file_path: &str) -> chunk_parser::Result<Self> {
                 let file = std::fs::File::open(file_path)?;
-                Ok( Self { reader: std::io::BufReader::new(file) } )
+                Ok( Self::new(std::io::BufReader::new(file)) )
             }
         }
 
-        // implement parser reader
-        impl<R> ParserReader for #name<R> where R: std::io::Read + std::io::Seek {
+        // implement parser interface
+        impl<R> ParserInner for #name<R> where R: std::io::Read + std::io::Seek {
             type Reader = R;
             #[inline] fn reader(&mut self) -> &mut Self::Reader { &mut self.reader }
+            #[inline] fn depth(&self) -> usize { self.depth }
+            #[inline] fn set_depth(&mut self, depth: usize) { self.depth = depth; }
         }
 
     }.into()
