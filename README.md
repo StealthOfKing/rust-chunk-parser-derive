@@ -12,7 +12,6 @@ The macro implements everything required to define a specialised chunk parser:
 
 ```rust
 use chunk_parser::prelude::*;
-use chunk_parser::chunk_parser;
 
 #[chunk_parser]
 struct IFFParser;
