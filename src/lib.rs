@@ -26,7 +26,7 @@ pub fn chunk_parser(_attr: TokenStream, item: TokenStream) -> TokenStream {
     // append internal parser fields
     fields.extend(quote! {
         reader: R,
-        depth: usize,
+        depth: isize,
     });
 
     // generate expanded struct definition
@@ -61,8 +61,9 @@ pub fn chunk_parser(_attr: TokenStream, item: TokenStream) -> TokenStream {
         impl<R> ParserInner for #name<R> where R: std::io::Read + std::io::Seek {
             type Reader = R;
             #[inline] fn reader(&mut self) -> &mut Self::Reader { &mut self.reader }
-            #[inline] fn depth(&self) -> usize { self.depth }
-            #[inline] fn set_depth(&mut self, depth: usize) { self.depth = depth; }
+            #[inline] fn depth(&self) -> usize { self.depth as usize }
+            #[inline] fn push(&mut self) { self.depth += 1; }
+            #[inline] fn pop(&mut self) { self.depth -= 1; }
         }
 
     }.into()
