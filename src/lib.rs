@@ -25,7 +25,7 @@ pub fn chunk_parser(args: TokenStream, item: TokenStream) -> TokenStream {
             for field in existing.named {
                 let Field { ident, ty, .. } = field;
                 fields.extend(quote! { #ident: #ty, });
-                defaults.extend(quote! { #ident: #ty::default() });
+                defaults.extend(quote! { #ident: #ty::default(), });
                 if ident.unwrap().to_string() == "depth" {
                     has_depth = true;
                 }
