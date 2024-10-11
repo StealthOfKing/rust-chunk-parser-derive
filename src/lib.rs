@@ -4,15 +4,30 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse_macro_input, DeriveInput, Data, Fields, Field};
 
-// this macro generates required and optional implementations for ChunkParser
+/// Generate required and optional implementations for ChunkParser.
+///
+/// # Attributes
+///
+/// The `custom` attribute prevents the macro from generating a default impl for
+/// `ChunkParser` so that its behaviour can be customised.
+///
+/// The `depth` attribute adds a `u8` field and implements `push()`, `pop()` and
+/// `depth()`. This attribute is automatically added to the default parser.
+///
+/// The `path` attribute adds a `PathBuf` field that is initialised with the
+/// resource's location, and implements `path()` to retrieve the value.
 #[proc_macro_attribute]
 pub fn chunk_parser(args: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as DeriveInput); // parse syntax tree
 
+    // struct and impl components
     let name = input.ident; // extract struct name
     let mut fields = quote! {}; // struct fields
     let mut defaults = quote! {}; // default initialisers
     let mut impls = quote! {}; // implementations
+    // ctor extras
+    let mut cursor_ctor_extra = quote! {};
+    let mut file_ctor_extra = quote! {};
 
     // optional feature config
     let mut has_depth = false;
@@ -38,15 +53,26 @@ pub fn chunk_parser(args: TokenStream, item: TokenStream) -> TokenStream {
 
     // process extra attribute features
     let parser = syn::meta::parser(|meta| {
-        if !has_depth && meta.path.is_ident("depth") {
-            needs_depth = true;
-            Ok(())
-        } else if meta.path.is_ident("custom") {
+        if meta.path.is_ident("custom") {
             is_custom = true;
-            Ok(())
+        } else if !has_depth && meta.path.is_ident("depth") {
+            needs_depth = true;
+        } else if meta.path.is_ident("path") {
+            // path attribute feature
+            fields.extend(quote! { path: std::path::PathBuf, });
+            defaults.extend(quote! { path: std::any::type_name::<R>().into(), });
+            cursor_ctor_extra.extend(quote! { new.path = ":memory:".into(); });
+            file_ctor_extra.extend(quote! { new.path = file_path.into(); });
+            impls.extend(quote! {
+                impl<R> ParserPath for #name<R> {
+                    #[inline] fn path(&self) -> &std::path::PathBuf
+                        { &self.path }
+                }
+            });
         } else {
-            Err(meta.error("unsupported attribute"))
+            return Err(meta.error("unsupported attribute"))
         }
+        Ok(())
     });
     parse_macro_input!(args with parser);
 
@@ -85,15 +111,20 @@ pub fn chunk_parser(args: TokenStream, item: TokenStream) -> TokenStream {
 
         // buffer ctor
         impl #name<std::io::Cursor<&[u8]>> {
-            #[inline] pub fn cursor(buffer: &'static [u8]) -> Self
-                { Self::new(std::io::Cursor::new(buffer)) }
+            #[inline] pub fn cursor(buffer: &'static [u8]) -> Self {
+                let mut new = Self::new(std::io::Cursor::new(buffer));
+                #cursor_ctor_extra
+                new
+            }
         }
 
         // file ctor
         impl #name<std::io::BufReader<std::fs::File>> {
             #[inline] pub fn file(file_path: &str) -> chunk_parser::Result<Self> {
                 let file = std::fs::File::open(file_path)?;
-                Ok( Self::new(std::io::BufReader::new(file)) )
+                let mut new = Self::new(std::io::BufReader::new(file));
+                #file_ctor_extra
+                Ok( new )
             }
         }
 
